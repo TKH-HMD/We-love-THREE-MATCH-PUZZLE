@@ -7,7 +7,7 @@
   ・消滅判定まで
   ・あわよくば爆弾と爆竹の生成と実行まで
   
-　　その他ギミックの実装は高望みか…
+　　その他ギミックは高望みかな…
 
 */
 
@@ -101,7 +101,7 @@ function paint() {
 
 } //paint()
 
-//クリックしたセルの色番号を-1にする
+/*クリックしたセルの色番号を-1にする//////////
 addEventListener("click", (event) => {
 
 	//絶対座標
@@ -122,66 +122,93 @@ addEventListener("click", (event) => {
 	}
 
 }, false)
+*/ /////////////////////////////////////
+
+//マウスが押された時に呼ばれる関数
+function mouseDownfunc(event) {
+	//絶対座標を取得
+	var clickX = event.pageX;
+	var clickY = event.pageY;
+
+	//クリックされたのがcanvas要素内であるか判定し、行・列番号を計算する
+	if (clickX >= 0 && clickX <= canvas.width && clickY >= 0 && clickY <= canvas.height) {
+		//clickCellNo=[行番号、列番号]
+		clickCellGyou = Math.floor(clickY / cellHeight);
+		clickCellRetsu = Math.floor(clickX / cellWidth);
+
+		//ボタン押下中にマウスが動いたらmouseMoveFuncへ
+		addEventListener("mousemove", mouseMoveFunc, false);
+	}
+
+	function mouseMoveFunc(event) {
+
+	}
+
+	addEventListener("mousedown", mouseDownFunc, false)
 
 
-//1~任意の数までの整数をランダムで返す
-function randomNum(num) {
-	return Math.ceil(Math.random() * num);
-}
+	//1~任意の数までの整数をランダムで返す
+	function randomNum(num) {
+		return Math.ceil(Math.random() * num);
+	}
 
-
-//セルの色決め
-for (var y = 0; y < cellGyou; y++) {
-
-	cells[y] = [];
-
-	for (var x = 0; x < cellRetsu; x++) {
-		cells[y][x] = new Cells(x, y);
-		cells[y][x].color = randomNum(cellType);
-	} //forX
-} //forYセルの色決めおわり
-//cells[2][0].color = -1;
-
-
-paint();
-
-function main() {
-	for (var y = 0; y < cells.length; y++) {
-		for (var x = 0; x < cells[y].length; x++) {
-			//一番上の行のセルが消えたら、セルに新しい色番号を付与
-			if (y === 0) {
-				if (cells[y][x].color === -1) {
-					cells[y][x].color = randomNum(cellType);
+	//セルの落下判定と落下中のセル座標の計算
+	function cellDrop() {
+		for (var y = 0; y < cells.length; y++) {
+			for (var x = 0; x < cells[y].length; x++) {
+				//一番上の行のセルが消えたら、セルに新しい色番号を付与
+				if (y === 0) {
+					if (cells[y][x].color === -1) {
+						cells[y][x].color = randomNum(cellType);
+					}
 				}
-			}
-			//セルが落ち終わったら,パラメータをリセットする
-			if (cells[y][x].move <= 0) {
-				cells[y][x].move = 30;
-				cells[y][x].dropF = false;
-				cells[y][x].y = y * cellHeight;
-				cells[y + 1][x].color = cells[y][x].color;
-				cells[y][x].color = -1;
-			} else if (cells[y][x].dropF === true) {
-				//セルの落下中判定が真のとき
-				cells[y][x].y += cells[y][x].moveSpeed;
-				cells[y][x].move -= cells[y]
-                    [x].moveSpeed;
-			} else if (y < cells.length - 1) {
-				//ひとつしたのセルの色番号が-1か、落下中判定が真のとき、
-				if (cells[y + 1][x].color === -1 || cells[y + 1][x].dropF === true) {
-					cells[y][x].dropF = true;
+				//セルが落ち終わったら,パラメータをリセットする
+				if (cells[y][x].move <= 0) {
+					cells[y][x].move = 30;
+					cells[y][x].dropF = false;
+					cells[y][x].y = y * cellHeight;
+					cells[y + 1][x].color = cells[y][x].color;
+					cells[y][x].color = -1;
+				} else if (cells[y][x].dropF === true) {
+					//セルの落下中判定が真のとき
 					cells[y][x].y += cells[y][x].moveSpeed;
-
 					cells[y][x].move -= cells[y]
-                    [x].moveSpeed;
+				[x].moveSpeed;
+				} else if (y < cells.length - 1) {
+					//ひとつしたのセルの色番号が-1か、落下中判定が真のとき、
+					if (cells[y + 1][x].color === -1 || cells[y + 1][x].dropF === true) {
+						cells[y][x].dropF = true;
+						cells[y][x].y += cells[y][x].moveSpeed;
+
+						cells[y][x].move -= cells[y]
+					[x].moveSpeed;
+					}
 				}
-			}
+			} //forX
+		} //forY
+	}
+
+	//セルの色決め
+	for (var y = 0; y < cellGyou; y++) {
+
+		cells[y] = [];
+
+		for (var x = 0; x < cellRetsu; x++) {
+			cells[y][x] = new Cells(x, y);
+			cells[y][x].color = randomNum(cellType);
 		} //forX
-	} //forY
+	} //forYセルの色決めおわり
+	//cells[2][0].color = -1;
+
 
 	paint();
-	setTimeout(main, 0.2)
 
-} //main()
+	function main() {
 
-main();
+		cellDrop()
+		paint();
+		setTimeout(main, 20)
+
+	} //main()
+
+	main();
