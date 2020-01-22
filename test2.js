@@ -3,8 +3,8 @@ class Game {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
 		this.masuWidth = 60;
-		this.gyou = 3;
-		this.retsu = 3;
+		this.gyou = 5;
+		this.retsu = 5;
 		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
@@ -151,13 +151,27 @@ class Game {
 				this.context.stroke();
 
 			}
+
+			let text = "(" + this.cells[i].x + "," + this.cells[i].y + ")";
+			let text2 = "p:(" + this.cells[i].previousX + "," + this.cells[i].previousY + ")";
+			let yokehaba = this.masuWidth * this.retsu
+
+
+			this.context.fillText(i, this.cells[i].x + yokehaba, this.cells[i].y + 10 + this.height / 2);
+
+			this.context.fillText(text, this.cells[i].x + yokehaba, this.cells[i].y + 20 + this.height / 2);
+
+			this.context.fillText(text2, this.cells[i].x + yokehaba, this.cells[i].y + 30 + this.height / 2);
+
+			this.context.fillText("Drag:" + this.cells[i].dragF, this.cells[i].x + yokehaba, this.cells[i].y + 40 + this.height / 2);
+
+			this.context.fillText("C:" + this.cells[i].changeF, this.cells[i].x + yokehaba, this.cells[i].y + 50 + this.height / 2);
+
+			this.context.fillText("V:" + this.cells[i].visibleF, this.cells[i].x + yokehaba, this.cells[i].y + 60 + this.height / 2);
+
+
 			/////////////////////////////
-			let text = this.cells[i].x + "," + this.cells[i].y;
-			this.context.fillText(i, this.cells[i].x + 180, this.cells[i].y + 10 + this.height / 2);
 
-			this.context.fillText(text, this.cells[i].x + 180, this.cells[i].y + 20 + this.height / 2);
-
-			this.context.fillText(this.cells[i].visibleF, this.cells[i].x + 180, this.cells[i].y + 40 + this.height / 2);
 		} //for
 
 
@@ -448,10 +462,15 @@ class Input {
 					//もし移動量がセル幅に達したらセルの入れ替えを固定し、関連フラグもリセットする
 
 					if (game.cells[i].move === 0) {
-						game.cells[i].previousX = game.cells[i].x;
-						game.cells[n].previousX = game.cells[n].x;
-						game.cells[i].previousY = game.cells[i].y;
-						game.cells[n].previousY = game.cells[n].y;
+						game.cells[i].moveWay = "";
+						let num = check.checker();
+						if (num > 0) {
+
+							game.cells[i].previousX = game.cells[i].x;
+							game.cells[n].previousX = game.cells[n].x;
+							game.cells[i].previousY = game.cells[i].y;
+							game.cells[n].previousY = game.cells[n].y;
+						}
 						input.mouseUpFunc();
 					}
 
@@ -478,6 +497,8 @@ class Check {
 		}
 		check.RID = 1;
 		check.CID = 1;
+		//消えた組数を入れる
+		let num = 0;
 
 		//全てのセルの上下左右のタイプを調べグループ化
 		for (let j = 0; j < game.cells.length; j++) {
@@ -502,6 +523,7 @@ class Check {
 						game.cells[j].visibleF = false;
 					}
 				}
+				num++
 			}
 		} //for i
 
@@ -523,19 +545,25 @@ class Check {
 						game.cells[j].visibleF = false;
 					}
 				}
+				num++
 			}
 		} //for i
 
-
+		return num;
 
 	} //checker()
 
 
 	groupCheck(cellNo) {
+		//チェック対象の上下左右のセルNoを入れる配列
 		let array = game.ditectNeighbor(cellNo);
+		//チェック対象のグループID
 		let cellId;
+		//未グループ同士のセルに付与する新しいID
 		let newId;
+		//チェック方向
 		let arrayWay;
+		//チェック方向のセルグループID
 		let arrayWayCellId;
 		for (let i = 1; i <= 4; i++) {
 			switch (i) {
@@ -577,7 +605,7 @@ class Check {
 					break
 			}
 			//隣のセルが存在し、なおかつ表示中の場合のみ判定
-			if (arrayWay != undefined && game.cells[arrayWay].visibleF === true) {
+			if (arrayWay != undefined && game.cells[arrayWay].visibleF === true && game.cells[arrayWay].y > 0) {
 				//左隣とタイプが同じとき
 				if (game.cells[cellNo].type === game.cells[arrayWay].type) {
 
@@ -683,6 +711,7 @@ class Check {
 				//フィールドの一番下についたら止まる
 				if (game.cells[i].y > (game.gyou - 1) * game.masuWidth) {
 					game.cells[i].y = (game.gyou - 1) * game.masuWidth
+					game.cells[i].previousY = (game.gyou - 1) * game.masuWidth
 					game.cells[i].dropF = false;
 				}
 				//}
