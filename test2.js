@@ -5,7 +5,7 @@ class Game {
 		this.masuWidth = 60;
 		this.gyou = 3;
 		this.retsu = 3;
-		this.width = this.masuWidth * this.gyou;
+		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
 		canvas.height = this.height;
@@ -63,10 +63,38 @@ class Game {
 		}
 	} //generateCell()
 
+	//フィールド内に非表示のセルが存在する場合、待機セルの一番上に移動させ
+	//フィールド最上段が空いている場合は待機セル最下段のものを表示させ、落下判定に引っかかるようにする
 	cellsReplace() {
+		let idouSaki = -(this.gyou * this.masuWidth) - this.masuWidth;
+		let array = [];
+
+		for (let i = 0; i < game.cells.length; i++) {
+			if (game.cells[i].y >= 0) {
+				//セルが何列目か計算する。
+				let x;
+				x = game.cells[i].x % game.masuWidth
+				//もし非表示ならarray[x]に加算し
+				if (!game.cells[i].visibleF) {
+					array[x] = array[x] || 0;
+					array[x]++;
+					//色を振り直し待機列へ
+					let count = array[x];
+					game.cells[i].y = idouSaki - (count * game.masuWidth);
+					game.cells[i].type = game.randomNum(5);
+				}
+			} //y>0
+
+			//待機列最下段なら
+			if (game.cells[i].y === -(game.masuWidth)) {
+				game.cells[i].visibleF = true;
+
+			}
+		}
+
+
 
 	}
-
 	//セルを描画する
 	paintCells() {
 
@@ -107,11 +135,29 @@ class Game {
 
 				this.context.fill()
 
-				this.context.fillText(i, this.cells[i].x, this.cells[i].y + 10 + this.height / 2);
-				this.context.fillText(this.cells[i].dropF, this.cells[i].x, this.cells[i].y + 40 + this.height / 2);
 
 			} //if
+			///////////////////////デバッグ用非表示セル表示////////////////
 
+			if (!this.cells[i].visibleF) {
+				let x = this.cells[i].x + radius // + this.clientRect.left;
+				let y = this.cells[i].y + radius // + this.clientRect.top;
+
+				this.context.beginPath();
+				this.context.arc(x, y, radius, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
+
+				this.context.strokeStyle = "black";
+				this.context.lineWidth = 1;
+				this.context.stroke();
+
+			}
+			/////////////////////////////
+			let text = this.cells[i].x + "," + this.cells[i].y;
+			this.context.fillText(i, this.cells[i].x + 180, this.cells[i].y + 10 + this.height / 2);
+
+			this.context.fillText(text, this.cells[i].x + 180, this.cells[i].y + 20 + this.height / 2);
+
+			this.context.fillText(this.cells[i].visibleF, this.cells[i].x + 180, this.cells[i].y + 40 + this.height / 2);
 		} //for
 
 
@@ -156,13 +202,13 @@ class Game {
 					}
 					break;
 				default:
-					if (game.cells[cellNo].previousY === game.cells[i].y + game.masuWidth && game.cells[cellNo].previousX === game.cells[i].x)
+					if (game.cells[cellNo].y === game.cells[i].y + game.masuWidth && game.cells[cellNo].x === game.cells[i].x)
 						array['up'] = i;
-					if (game.cells[cellNo].previousY === game.cells[i].y - game.masuWidth && game.cells[cellNo].previousX === game.cells[i].x)
+					if (game.cells[cellNo].y === game.cells[i].y - game.masuWidth && game.cells[cellNo].x === game.cells[i].x)
 						array['down'] = i;
-					if (game.cells[cellNo].previousX === game.cells[i].x - game.masuWidth && game.cells[cellNo].previousY === game.cells[i].y)
+					if (game.cells[cellNo].x === game.cells[i].x - game.masuWidth && game.cells[cellNo].y === game.cells[i].y)
 						array['right'] = i;
-					if (game.cells[cellNo].previousX === game.cells[i].x + game.masuWidth && game.cells[cellNo].previousY === game.cells[i].y)
+					if (game.cells[cellNo].x === game.cells[i].x + game.masuWidth && game.cells[cellNo].y === game.cells[i].y)
 						array['left'] = i;
 			} //switch
 		} //for
@@ -480,6 +526,8 @@ class Check {
 			}
 		} //for i
 
+
+
 	} //checker()
 
 
@@ -606,20 +654,21 @@ class Check {
 
 				let array = game.ditectNeighbor(i);
 
-
+				//一つ下のセルと接していない状態なら自身も落下する
 				if (array.down == undefined) {
-					if (game.cells[i].y < (game.gyou - 1) * game.masuWidth) {
-						game.cells[i].dropF = true;
-					}
+					/*if (game.cells[i].y < (game.gyou - 1) * game.masuWidth) {*/
+					game.cells[i].dropF = true;
+					//}
 				}
+
 
 				if (array.down !== undefined) {
 					//一つ下のセルが落ち始めたら自身も落下を始める
-					if (game.cells[array.down].visibleF === false || game.cells[array.down].dropF === true) {
+					if ( /*game.cells[array.down].visibleF === false ||*/ game.cells[array.down].dropF === true) {
 						game.cells[i].dropF = true;
 					}
-					//一つ下のセルが表示中で、落下中でなければ止まる
-					if (game.cells[array.down].visibleF === true && game.cells[array.down].dropF === false) {
+					//一つ下のセルが落下中でなければ止まる
+					if ( /*game.cells[array.down].visibleF === true && */ game.cells[array.down].dropF === false) {
 						game.cells[i].dropF = false;
 					}
 				}
@@ -636,12 +685,10 @@ class Check {
 					game.cells[i].y = (game.gyou - 1) * game.masuWidth
 					game.cells[i].dropF = false;
 				}
+				//}
+				//自身が表示中か
 
-				//非表示のセルは一旦フィールド外に出して待機させる
-				if (game.cells[i].visibleF === false) {
-					game.cells[i].x += game.width;
-				}
-				//}自身が表示中か
+
 			} //for
 		} //if !stop
 
@@ -661,6 +708,7 @@ function main() {
 	check.checker();
 	check.dropCheck();
 	game.paintCells();
+	game.cellsReplace();
 	requestAnimationFrame(main);
 }
 
