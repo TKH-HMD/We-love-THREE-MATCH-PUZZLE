@@ -3,8 +3,8 @@ class Game {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
 		this.masuWidth = 60;
-		this.gyou = 5;
-		this.retsu = 5;
+		this.gyou = 7;
+		this.retsu = 7;
 		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
@@ -107,37 +107,73 @@ class Game {
 		for (let i = 0; i < this.cells.length; i++) {
 			//もしセルが消えていない状態なら
 			if (this.cells[i].visibleF) {
-				let x = this.cells[i].x + radius // + this.clientRect.left;
-				let y = this.cells[i].y + radius // + this.clientRect.top;
+				if (this.cells[i].type < 10) {
+					let x = this.cells[i].x + radius // + this.clientRect.left;
+					let y = this.cells[i].y + radius // + this.clientRect.top;
 
-				this.context.beginPath();
-				this.context.arc(x, y, radius, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
+					this.context.beginPath();
+					this.context.arc(x, y, radius, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
 
-				switch (this.cells[i].type) {
+					switch (this.cells[i].type) {
 
-					case 0:
-						this.context.fillStyle = "red";
-						break;
-					case 1:
-						this.context.fillStyle = "blue";
-						break;
-					case 2:
-						this.context.fillStyle = "green";
-						break;
-					case 3:
-						this.context.fillStyle = "#ff0";
-						break;
-					case 4:
-						this.context.fillStyle = "#0ff";
-						break;
+						case 0:
+							this.context.fillStyle = "red";
+							break;
+						case 1:
+							this.context.fillStyle = "blue";
+							break;
+						case 2:
+							this.context.fillStyle = "green";
+							break;
+						case 3:
+							this.context.fillStyle = "#ff0";
+							break;
+						case 4:
+							this.context.fillStyle = "#0ff";
+							break;
 
-				} //switch
+					} //switch
+				} //if type<10
+
+				if (this.cells[i].type > 10) {
+					let x = this.cells[i].x
+					let y = this.cells[i].y
+					let text;
+
+					switch (this.cells[i].type) {
+						case 11:
+							this.context.fillStyle = "black";
+							text = "◆";
+							break;
+
+						case 12:
+							this.context.fillStyle = "white";
+							text = "◆";
+							break;
+
+						case 13:
+							this.context.fillStyle = "black";
+							text = "●";
+							break;
+
+
+					} //switch
+
+					this.context.font = "60px sans-serif";
+					this.context.textBaseline = "top";
+					this.context.fillText(text, this.cells[i].x, this.cells[i].y);
+
+				} //if type<10
+
 
 				this.context.fill()
 
 
 			} //if
 			///////////////////////デバッグ用非表示セル表示////////////////
+
+			this.context.font = "10px sans-serif";
+
 
 			if (!this.cells[i].visibleF) {
 				let x = this.cells[i].x + radius // + this.clientRect.left;
@@ -241,7 +277,11 @@ move:アニメーション用の数字。毎フレームmoveSpeedを引き算し
 moveSpeed:アニメーション用の数字。一度に動くpixel数
 */
 class Cell {
-
+	/*type10~:爆弾・爆竹
+			11:縦一列
+			12:横一列
+			12:爆弾（縦横3マスまでを消す）
+	*/
 	constructor(x, y, type) {
 		this.x = x;
 		this.y = y;
@@ -252,7 +292,7 @@ class Cell {
 		this.move = game.masuWidth;
 		this.moveWay = "";
 		this.changeF = false;
-		this.moveSpeed = 1;
+		this.moveSpeed = 3;
 		this.type = type;
 		//-1はグループ未判定、-2は消滅グループ外、消えるグループができたら1から順に割り当てていく
 		this.disappearGroupRId = -1;
@@ -463,8 +503,53 @@ class Input {
 
 					if (game.cells[i].move === 0) {
 						game.cells[i].moveWay = "";
-						let num = check.checker();
-						if (num > 0) {
+
+						//動かしたセルか、入れ替えられたセルが爆弾系（type：10代）なら、作動させる
+
+						let cellNo = 0;
+						if (game.cells[i].type > 10) cellNo = i;
+						if (n !== undefined && game.cells[n].type > 10) cellNo = n;
+
+						switch (game.cells[cellNo].type) {
+							case 11:
+								for (let j = 0; j < game.cells.length; j++) {
+									if (game.cells[j].x === game.cells[cellNo].x) game.cells[j].visibleF = false;
+								}
+								break;
+
+							case 12:
+								for (let j = 0; j < game.cells.length; j++) {
+									if (game.cells[j].y === game.cells[cellNo].y) game.cells[j].visibleF = false;
+								}
+								break;
+
+							case 13:
+								for (let j = 0; j < game.cells.length; j++) {
+									if (game.cells[j].y >= game.cells[cellNo].y - (game.masuWidth * 2) &&
+										game.cells[j].y <= game.cells[cellNo].y + (game.masuWidth * 2) &&
+										game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2) &&
+										game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2)
+									) {
+										game.cells[j].visibleF = false;
+
+										if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) game.cells[j].visibleF = true;
+
+										else if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) game.cells[j].visibleF = true;
+
+										else if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) game.cells[j].visibleF = true;
+
+										else
+										if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) game.cells[j].visibleF = true;
+									}
+								}
+								break;
+
+							default:
+								break;
+						}
+
+						let num = check.checker(i);
+						if (num > 0 || game.cells[i].type > 10 || game.cells[n].type > 10) {
 
 							game.cells[i].previousX = game.cells[i].x;
 							game.cells[n].previousX = game.cells[n].x;
@@ -472,6 +557,7 @@ class Input {
 							game.cells[n].previousY = game.cells[n].y;
 						}
 						input.mouseUpFunc();
+
 					}
 
 				} //else
@@ -489,7 +575,8 @@ class Check {
 		this.CID = 1;
 	}
 
-	checker() {
+	checker(moveCell) {
+
 		//グループをリセット
 		for (let j = 0; j < game.cells.length; j++) {
 			game.cells[j].disappearGroupRId = -1;
@@ -500,9 +587,11 @@ class Check {
 		//消えた組数を入れる
 		let num = 0;
 
-		//全てのセルの上下左右のタイプを調べグループ化
+		//表示中で・なおかつ落下中ではない全てのセルの上下左右のタイプを調べグループ化
+		//隣のセルが落下中の場合も判定しないようにする(dropCheck)
 		for (let j = 0; j < game.cells.length; j++) {
-			if (game.cells[j].visibleF === true) check.groupCheck(j);
+			if (game.cells[j].visibleF === true &&
+				game.cells[j].y >= 0 && game.cells[j].dropF === false) check.groupCheck(j);
 		}
 
 		//横並びの同一グループのセルの数を数える
@@ -518,12 +607,56 @@ class Check {
 
 			//同グループのセルの数が３以上なら表示しない
 			if (count >= 3) {
-				for (let j = 0; j < game.cells.length; j++) {
+				let b = 0;
+				for (var j = 0; j < game.cells.length; j++) {
 					if (game.cells[j].disappearGroupRId === i) {
 						game.cells[j].visibleF = false;
+
+						//もし横並びで４こ揃っていたら
+						if (count === 4) {
+
+							if (moveCell === undefined && b === 0) {
+								game.cells[j].visibleF = true;
+								game.cells[j].type = 12;
+								b++
+							} else
+
+							if (moveCell !== undefined && game.cells[moveCell].visibleF === false && game.cells[moveCell].disappearGroupRId === i) {
+								game.cells[moveCell].visibleF = true;
+								game.cells[moveCell].type = 12;
+
+							}
+
+						} //if count=4
+
+						if (count >= 5) {
+
+							if (moveCell === undefined && a === 0) {
+								game.cells[j].visibleF = true;
+								game.cells[j].type = 13;
+								a++
+							}
+
+
+						} //if count＞５
+
 					}
-				}
+
+					if (game.cells[moveCell].visibleF === false && moveCell !== undefined && game.cells[moveCell].disappearGroupRId === i) {
+						game.cells[moveCell].visibleF = true;
+						game.cells[moveCell].type = 13;
+
+					}
+
+				} //forj
 				num++
+			}
+			//もし横並びで４こ揃っていたら
+			if (count === 4) {
+				if (moveCell !== undefined && game.cells[moveCell].disappearGroupRId === i) {
+					game.cells[moveCell].visibleF = true;
+					game.cells[moveCell].type = 11;
+				}
 			}
 		} //for i
 
@@ -540,13 +673,51 @@ class Check {
 
 			//同グループのセルの数が３以上なら表示しない
 			if (count >= 3) {
+				let a = 0;
 				for (let j = 0; j < game.cells.length; j++) {
 					if (game.cells[j].disappearGroupCId === i) {
 						game.cells[j].visibleF = false;
+						//もし縦並びで４こ揃っていたら
+						if (count === 4) {
+
+							if (moveCell === undefined && a === 0) {
+								game.cells[j].visibleF = true;
+								game.cells[j].type = 12;
+								a++
+							} else
+
+							if (moveCell !== undefined && game.cells[moveCell].visibleF === false && game.cells[moveCell].disappearGroupCId === i) {
+								game.cells[moveCell].visibleF = true;
+								game.cells[moveCell].type = 12;
+
+							}
+						} //if count=4
+
+						if (count >= 5) {
+
+							if (moveCell === undefined && a === 0) {
+								game.cells[j].visibleF = true;
+								game.cells[j].type = 13;
+								a++
+							} else
+
+							if (game.cells[moveCell].visibleF === false && moveCell !== undefined && game.cells[moveCell].disappearGroupCId === i) {
+								game.cells[moveCell].visibleF = true;
+								game.cells[moveCell].type = 13;
+
+							}
+						} //if count＞５
+						if (game.cells[j].disappearGroupCId > 0 &&
+							game.cells[j].disappearGroupRId > 0 &&
+							game.cells[j].visibleF === false
+						)
+							game.cells[j].type = 13;
 					}
-				}
+				} //forj
 				num++
 			}
+
+
 		} //for i
 
 		return num;
@@ -604,8 +775,11 @@ class Check {
 					}
 					break
 			}
-			//隣のセルが存在し、なおかつ表示中の場合のみ判定
-			if (arrayWay != undefined && game.cells[arrayWay].visibleF === true && game.cells[arrayWay].y > 0) {
+			//隣のセルが存在し、表示中でなおかつ落下中ではない場合のみ判定
+			if (arrayWay != undefined &&
+				game.cells[arrayWay].visibleF === true &&
+				game.cells[arrayWay].y >= 0 &&
+				game.cells[arrayWay].dropF === false) {
 				//左隣とタイプが同じとき
 				if (game.cells[cellNo].type === game.cells[arrayWay].type) {
 
@@ -613,7 +787,7 @@ class Check {
 					if (cellId < 0) {
 
 						//左隣が既グループなら、左隣と同じグループに入る
-						if (game.cells[arrayWay].disappearGroupRId > 0) {
+						if (arrayWayCellId > 0) {
 							if (arrayWay === array.left || arrayWay === array.right) {
 								game.cells[cellNo].disappearGroupRId = arrayWayCellId;
 							}
@@ -623,7 +797,7 @@ class Check {
 
 						}
 						//左隣も未グループなら新しいRグループIDを両方にふる
-						if (game.cells[arrayWay].disappearGroupRId < 0) {
+						if (arrayWayCellId < 0) {
 							if (arrayWay === array.left || arrayWay === array.right) {
 								game.cells[cellNo].disappearGroupRId = newId;
 								game.cells[arrayWay].disappearGroupRId = newId;
@@ -642,18 +816,30 @@ class Check {
 					if (cellId > 0) {
 
 						//左隣が未グループなら、左隣をチェック対象と同じグループに入れる
-						if (game.cells[arrayWay].disappearGroupRId < 0) {
+						if (arrayWayCellId < 0) {
 							if (arrayWay === array.left || arrayWay === array.right) {
 								game.cells[arrayWay].disappearGroupRId = cellId;
 							}
 							if (arrayWay === array.down || arrayWay === array.up) {
 								game.cells[arrayWay].disappearGroupCId = cellId;
 							}
-							//両方既グループの場合はそのまま
 						}
-						//チェック対象既グループおわり
+						//両方とも既グループの場合、大きい方の数字を上書きする
 
-					} //左隣とタイプが同じとき おわり
+						if (arrayWayCellId > 0) {
+
+							if (arrayWay === array.left || arrayWay === array.right) {
+
+								if (arrayWayCellId > cellId) game.cells[cellNo].disappearGroupRId = game.cells[arrayWay].disappearGroupRId;
+								if (arrayWayCellId < cellId) game.cells[arrayWay].disappearGroupRId = cellId;
+							}
+							if (arrayWay === array.down || arrayWay === array.up) {
+								if (arrayWayCellId > cellId) game.cells[cellNo].disappearGroupCId = game.cells[arrayWay].disappearGroupCId;
+
+								if (arrayWayCellId < cellId) game.cells[arrayWay].disappearGroupCId = cellId;
+							}
+						}
+					}
 
 				} //array.left !=undifined
 			}
@@ -732,10 +918,43 @@ let check = new Check;
 
 game.generateCells();
 
+function cellKaburiDetect() {
+
+	for (let i = 0; i < game.cells.length; i++) {
+
+		for (let j = 0; j < game.cells.length; j++) {
+			//セル番号iとjが同じではなく、ドラッグ中ではない
+			if (i != j &&
+				game.cells[i].dragF === false &&
+				game.cells[j].dragF === false &&
+				game.cells[i].changeF === false &&
+				game.cells[j].changeF === false
+
+			) {
+				//被ったら待機列一番上に飛ばす
+				if (game.cells[i].y < game.cells[j].y + game.masuWidth &&
+					game.cells[j].y + game.masuWidth < game.cells[i].y &&
+					game.cells[i].x === game.cells[j].x
+				) {
+					game.cells[j].y = -(game.masuWidth * game.gyou);
+				}
+				//
+				if (game.cells[i].y === game.cells[j].y &&
+					game.cells[i].x === game.cells[j].x
+				) {
+					game.cells[j].y = -(game.masuWidth * game.gyou);
+				}
+			}
+		}
+	}
+
+} //func cellKaburiDetect()
+
 function main() {
 	game.paintBG();
 	check.checker();
 	check.dropCheck();
+	cellKaburiDetect();
 	game.paintCells();
 	game.cellsReplace();
 	requestAnimationFrame(main);
