@@ -3,8 +3,8 @@ class Game {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
 		this.masuWidth = 60;
-		this.gyou = 7;
-		this.retsu = 7;
+		this.gyou = 10;
+		this.retsu = 10;
 		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
@@ -133,6 +133,9 @@ class Game {
 							break;
 
 					} //switch
+
+					this.context.fill()
+
 				} //if type<10
 
 				if (this.cells[i].type > 10) {
@@ -163,10 +166,7 @@ class Game {
 					this.context.textBaseline = "top";
 					this.context.fillText(text, this.cells[i].x, this.cells[i].y);
 
-				} //if type<10
-
-
-				this.context.fill()
+				} //if type>10
 
 
 			} //if
@@ -528,18 +528,28 @@ class Input {
 									if (game.cells[j].y >= game.cells[cellNo].y - (game.masuWidth * 2) &&
 										game.cells[j].y <= game.cells[cellNo].y + (game.masuWidth * 2) &&
 										game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2) &&
-										game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2)
+										game.cells[j].x <= game.cells[cellNo].x + (game.masuWidth * 2)
 									) {
 										game.cells[j].visibleF = false;
 
-										if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) game.cells[j].visibleF = true;
+										if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
 
-										else if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) game.cells[j].visibleF = true;
+											game.cells[j].visibleF = true;
 
-										else if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) game.cells[j].visibleF = true;
+										} else if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) {
 
-										else
-										if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) game.cells[j].visibleF = true;
+											game.cells[j].visibleF = true;
+
+										} else if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
+
+											game.cells[j].visibleF = true;
+
+										} else
+										if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) {
+
+											game.cells[j].visibleF = true;
+
+										}
 									}
 								}
 								break;
@@ -617,13 +627,13 @@ class Check {
 
 							if (moveCell === undefined && b === 0) {
 								game.cells[j].visibleF = true;
-								game.cells[j].type = 12;
+								game.cells[j].type = 11;
 								b++
 							} else
 
 							if (moveCell !== undefined && game.cells[moveCell].visibleF === false && game.cells[moveCell].disappearGroupRId === i) {
 								game.cells[moveCell].visibleF = true;
-								game.cells[moveCell].type = 12;
+								game.cells[moveCell].type = 11;
 
 							}
 
@@ -631,33 +641,25 @@ class Check {
 
 						if (count >= 5) {
 
-							if (moveCell === undefined && a === 0) {
+							if (moveCell === undefined && b === 0) {
 								game.cells[j].visibleF = true;
 								game.cells[j].type = 13;
-								a++
+								b++
+							} else
+
+							if (moveCell !== undefined && game.cells[moveCell].visibleF === false && game.cells[moveCell].disappearGroupRId === i) {
+								game.cells[moveCell].visibleF = true;
+								game.cells[moveCell].type = 13;
+
 							}
-
-
 						} //if count＞５
-
-					}
-
-					if (game.cells[moveCell].visibleF === false && moveCell !== undefined && game.cells[moveCell].disappearGroupRId === i) {
-						game.cells[moveCell].visibleF = true;
-						game.cells[moveCell].type = 13;
 
 					}
 
 				} //forj
 				num++
 			}
-			//もし横並びで４こ揃っていたら
-			if (count === 4) {
-				if (moveCell !== undefined && game.cells[moveCell].disappearGroupRId === i) {
-					game.cells[moveCell].visibleF = true;
-					game.cells[moveCell].type = 11;
-				}
-			}
+
 		} //for i
 
 		//縦並びの同一グループのセルの数を数える
@@ -676,7 +678,16 @@ class Check {
 				let a = 0;
 				for (let j = 0; j < game.cells.length; j++) {
 					if (game.cells[j].disappearGroupCId === i) {
-						game.cells[j].visibleF = false;
+						//もし縦横に３つ以上揃っていたら
+						if (
+							game.cells[j].disappearGroupRId > 0 &&
+							game.cells[j].visibleF === false
+						) {
+							game.cells[j].type = 13;
+							game.cells[j].visibleF = true;
+						}
+
+						if (game.cells[j].type != 13) game.cells[j].visibleF = false;
 						//もし縦並びで４こ揃っていたら
 						if (count === 4) {
 
@@ -701,23 +712,17 @@ class Check {
 								a++
 							} else
 
-							if (game.cells[moveCell].visibleF === false && moveCell !== undefined && game.cells[moveCell].disappearGroupCId === i) {
+							if (moveCell !== undefined && game.cells[moveCell].visibleF === false && game.cells[moveCell].disappearGroupCId === i) {
 								game.cells[moveCell].visibleF = true;
 								game.cells[moveCell].type = 13;
 
 							}
 						} //if count＞５
-						if (game.cells[j].disappearGroupCId > 0 &&
-							game.cells[j].disappearGroupRId > 0 &&
-							game.cells[j].visibleF === false
-						)
-							game.cells[j].type = 13;
-					}
+
+					} //if
 				} //forj
 				num++
-			}
-
-
+			} //if count>=3
 		} //for i
 
 		return num;
@@ -909,6 +914,39 @@ class Check {
 
 	} //dropCheck()
 
+	cellKaburiDetect() {
+
+		for (let i = 0; i < game.cells.length; i++) {
+
+			for (let j = 0; j < game.cells.length; j++) {
+				//セル番号iとjが同じではなく、ドラッグ中ではない
+				if (i != j &&
+					game.cells[i].dragF === false &&
+					game.cells[j].dragF === false &&
+					game.cells[i].changeF === false &&
+					game.cells[j].changeF === false
+
+				) {
+					//被ったら待機列一番上に飛ばす
+					if (game.cells[i].y < game.cells[j].y + game.masuWidth &&
+						game.cells[j].y + game.masuWidth < game.cells[i].y &&
+						game.cells[i].x === game.cells[j].x
+					) {
+						game.cells[j].y = -(game.masuWidth * game.gyou);
+					}
+					//
+					if (game.cells[i].y === game.cells[j].y &&
+						game.cells[i].x === game.cells[j].x
+					) {
+						game.cells[j].y = -(game.masuWidth * game.gyou);
+					}
+				}
+			}
+		}
+
+	} //func cellKaburiDetect()
+
+
 } //class Check
 
 
@@ -918,43 +956,17 @@ let check = new Check;
 
 game.generateCells();
 
-function cellKaburiDetect() {
+function bombsExplosion(cellNo) {
 
-	for (let i = 0; i < game.cells.length; i++) {
 
-		for (let j = 0; j < game.cells.length; j++) {
-			//セル番号iとjが同じではなく、ドラッグ中ではない
-			if (i != j &&
-				game.cells[i].dragF === false &&
-				game.cells[j].dragF === false &&
-				game.cells[i].changeF === false &&
-				game.cells[j].changeF === false
 
-			) {
-				//被ったら待機列一番上に飛ばす
-				if (game.cells[i].y < game.cells[j].y + game.masuWidth &&
-					game.cells[j].y + game.masuWidth < game.cells[i].y &&
-					game.cells[i].x === game.cells[j].x
-				) {
-					game.cells[j].y = -(game.masuWidth * game.gyou);
-				}
-				//
-				if (game.cells[i].y === game.cells[j].y &&
-					game.cells[i].x === game.cells[j].x
-				) {
-					game.cells[j].y = -(game.masuWidth * game.gyou);
-				}
-			}
-		}
-	}
-
-} //func cellKaburiDetect()
+}
 
 function main() {
 	game.paintBG();
 	check.checker();
 	check.dropCheck();
-	cellKaburiDetect();
+	check.cellKaburiDetect();
 	game.paintCells();
 	game.cellsReplace();
 	requestAnimationFrame(main);
