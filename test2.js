@@ -3,8 +3,8 @@ class Game {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
 		this.masuWidth = 60;
-		this.gyou = 10;
-		this.retsu = 10;
+		this.gyou = 3;
+		this.retsu = 3;
 		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
@@ -254,8 +254,13 @@ class Game {
 				default:
 					if (game.cells[cellNo].y === game.cells[i].y + game.masuWidth && game.cells[cellNo].x === game.cells[i].x)
 						array['up'] = i;
+
 					if (game.cells[cellNo].y === game.cells[i].y - game.masuWidth && game.cells[cellNo].x === game.cells[i].x)
 						array['down'] = i;
+					if (game.cells[cellNo].y === game.cells[i].y - game.masuWidth && game.cells[cellNo].x > game.cells[i].x &&
+						game.cells[cellNo].x < game.cells[i].x + 30)
+						array['down'] = i;
+
 					if (game.cells[cellNo].x === game.cells[i].x - game.masuWidth && game.cells[cellNo].y === game.cells[i].y)
 						array['right'] = i;
 					if (game.cells[cellNo].x === game.cells[i].x + game.masuWidth && game.cells[cellNo].y === game.cells[i].y)
@@ -518,7 +523,8 @@ class Input {
 						}
 
 						let num = check.checker(i);
-						if (num > 0 || game.cells[i].type > 10 || game.cells[n].type > 10) {
+						if (num > 0 || game.cells[i].type > 10 ||
+							game.cells[n].type > 10) {
 
 							game.cells[i].previousX = game.cells[i].x;
 							game.cells[n].previousX = game.cells[n].x;
@@ -819,24 +825,36 @@ class Check {
 
 	dropCheck() {
 
-		let stop = 0;
+		let dragging;
+		let changing;
+		let go = false;
 
-		/*
-		//他のセルがドラッグ中であればstop++
+		//他のセルがドラッグ中であれば変数に入れる
 		for (let i = 0; i < game.cells.length; i++) {
 			if (game.cells[i].moveWay !== "") {
-				stop++;
+				dragging = i;
+			}
+			if (game.cells[i].changeF) {
+				changing = i;
 			}
 		}
-*/
 
+		for (let i = 0; i < game.cells.length; i++) {
 
-		if (stop === 0) {
-			for (let i = 0; i < game.cells.length; i++) {
+			go = false;
 
-				//もし自身が表示中で
-				//if (game.cells[i].visibleF === true) {
+			//もし自身と下のセルがドラッグ中でないなら
+			if (dragging === undefined || changing === undefined) {
+				go = true;
+			} else if (i !== dragging &&
+				i !== changing &&
+				game.cells[i].x !== game.cells[dragging].previousX &&
+				game.cells[i].x !== game.cells[changing].previousX
+			) {
+				go = true;
+			}
 
+			if (go) {
 				let array = game.ditectNeighbor(i);
 
 				//一つ下のセルと接していない状態なら自身も落下する
@@ -874,9 +892,8 @@ class Check {
 				//}
 				//自身が表示中か
 
-
-			} //for
-		} //if !stop
+			}
+		} //for
 
 	} //dropCheck()
 
