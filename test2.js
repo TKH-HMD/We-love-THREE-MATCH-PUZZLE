@@ -507,55 +507,14 @@ class Input {
 						//動かしたセルか、入れ替えられたセルが爆弾系（type：10代）なら、作動させる
 
 						let cellNo = 0;
-						if (game.cells[i].type > 10) cellNo = i;
-						if (n !== undefined && game.cells[n].type > 10) cellNo = n;
+						if (game.cells[i].type > 10) {
+							game.cells[i].visibleF = false;
+							cellNo = i;
+						}
 
-						switch (game.cells[cellNo].type) {
-							case 11:
-								for (let j = 0; j < game.cells.length; j++) {
-									if (game.cells[j].x === game.cells[cellNo].x) game.cells[j].visibleF = false;
-								}
-								break;
-
-							case 12:
-								for (let j = 0; j < game.cells.length; j++) {
-									if (game.cells[j].y === game.cells[cellNo].y) game.cells[j].visibleF = false;
-								}
-								break;
-
-							case 13:
-								for (let j = 0; j < game.cells.length; j++) {
-									if (game.cells[j].y >= game.cells[cellNo].y - (game.masuWidth * 2) &&
-										game.cells[j].y <= game.cells[cellNo].y + (game.masuWidth * 2) &&
-										game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2) &&
-										game.cells[j].x <= game.cells[cellNo].x + (game.masuWidth * 2)
-									) {
-										game.cells[j].visibleF = false;
-
-										if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
-
-											game.cells[j].visibleF = true;
-
-										} else if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) {
-
-											game.cells[j].visibleF = true;
-
-										} else if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
-
-											game.cells[j].visibleF = true;
-
-										} else
-										if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) {
-
-											game.cells[j].visibleF = true;
-
-										}
-									}
-								}
-								break;
-
-							default:
-								break;
+						if (n !== undefined && game.cells[n].type > 10) {
+							cellNo = n;
+							game.cells[i].visibleF = false;
 						}
 
 						let num = check.checker(i);
@@ -599,9 +558,14 @@ class Check {
 
 		//表示中で・なおかつ落下中ではない全てのセルの上下左右のタイプを調べグループ化
 		//隣のセルが落下中の場合も判定しないようにする(dropCheck)
+		//爆弾系セルの爆発判定も同時にする
 		for (let j = 0; j < game.cells.length; j++) {
 			if (game.cells[j].visibleF === true &&
 				game.cells[j].y >= 0 && game.cells[j].dropF === false) check.groupCheck(j);
+			if (game.cells[j].type > 10 && game.cells[j].visibleF === false) {
+				bombsExplosion(j);
+			}
+
 		}
 
 		//横並びの同一グループのセルの数を数える
@@ -857,12 +821,14 @@ class Check {
 
 		let stop = 0;
 
+		/*
 		//他のセルがドラッグ中であればstop++
 		for (let i = 0; i < game.cells.length; i++) {
 			if (game.cells[i].moveWay !== "") {
 				stop++;
 			}
 		}
+*/
 
 
 		if (stop === 0) {
@@ -928,8 +894,8 @@ class Check {
 
 				) {
 					//被ったら待機列一番上に飛ばす
-					if (game.cells[i].y < game.cells[j].y + game.masuWidth &&
-						game.cells[j].y + game.masuWidth < game.cells[i].y &&
+					if (game.cells[j].y < game.cells[i].y &&
+						game.cells[i].y < game.cells[j].y + game.masuWidth &&
 						game.cells[i].x === game.cells[j].x
 					) {
 						game.cells[j].y = -(game.masuWidth * game.gyou);
@@ -959,6 +925,53 @@ game.generateCells();
 function bombsExplosion(cellNo) {
 
 
+	switch (game.cells[cellNo].type) {
+		case 11:
+			for (let j = 0; j < game.cells.length; j++) {
+				if (game.cells[j].x === game.cells[cellNo].x) game.cells[j].visibleF = false;
+			}
+			break;
+
+		case 12:
+			for (let j = 0; j < game.cells.length; j++) {
+				if (game.cells[j].y === game.cells[cellNo].y) game.cells[j].visibleF = false;
+			}
+			break;
+
+		case 13:
+			for (let j = 0; j < game.cells.length; j++) {
+				if (game.cells[j].y >= game.cells[cellNo].y - (game.masuWidth * 2) &&
+					game.cells[j].y <= game.cells[cellNo].y + (game.masuWidth * 2) &&
+					game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2) &&
+					game.cells[j].x <= game.cells[cellNo].x + (game.masuWidth * 2)
+				) {
+					game.cells[j].visibleF = false;
+
+					if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
+
+						game.cells[j].visibleF = true;
+
+					} else if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) {
+
+						game.cells[j].visibleF = true;
+
+					} else if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
+
+						game.cells[j].visibleF = true;
+
+					} else
+					if (game.cells[j].y === game.cells[cellNo].y + (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x + (game.masuWidth * 2)) {
+
+						game.cells[j].visibleF = true;
+
+					}
+				}
+			}
+			break;
+
+		default:
+			break;
+	}
 
 }
 
