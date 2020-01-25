@@ -3,8 +3,8 @@ class Game {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
 		this.masuWidth = 60;
-		this.gyou = 3;
-		this.retsu = 3;
+		this.gyou = 6;
+		this.retsu = 7;
 		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
@@ -62,6 +62,15 @@ class Game {
 			}
 		}
 	} //generateCell()
+
+	generateObjects() {
+
+		let objects = GetQueryString();
+		for (let i = 0; i < objects.length; i++) {
+			objects[i].type
+		}
+
+	}
 
 	//フィールド内に非表示のセルが存在する場合、待機セルの一番上に移動させ
 	//フィールド最上段が空いている場合は待機セル最下段のものを表示させ、落下判定に引っかかるようにする
@@ -991,6 +1000,35 @@ function bombsExplosion(cellNo) {
 	}
 
 }
+
+function GetQueryString() {
+
+	let URLQuery = document.location.search;
+	let query = [];
+	let objectPram = [];
+
+	if (1 < URLQuery.length) {
+
+		//オブジェクトの数を割り出す。ひとつのオブジェクトにつき３つのパラメータを持っている
+		let NumOfobject = Math.ceil((URLQuery.length - 1) / 3);
+
+		//URLパラメータの二文字目から取得(一文字目は区切り記号の？だから)
+		for (let i = 0; i < NumOfobject; i++) {
+			query[i] = document.location.search.substr(3 * i + 1, 3);
+			objectPram[i] = [];
+			objectPram[i].type = query[i].substr(0, 1);
+			objectPram[i].x = query[i].substr(1, 1);
+			objectPram[i].y = query[i].substr(2, 1);
+
+		}
+
+		return objectPram;
+
+	}
+
+	return null;
+
+} //func GetQueryString()
 
 function main() {
 	game.paintBG();

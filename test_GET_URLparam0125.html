@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="jp" xmlns="http://www.w3.org/1999/xhtml">
+
+	<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>URLからのパラメータの取得</title>
+
+	<script type="text/javascript">
+		window.onload = function onLoad() {
+			//関数実行して返ってきた連想配列が収納される
+			param = GetQueryString();
+			//div#param
+			target = document.getElementById("param");
+			//div#paramに、連想配列のキー”test”の値が挿入される
+			for (let i = 0; i < param.length; i++) {
+				console.log(param[i]);
+			}
+
+		}
+
+		function GetQueryString() {
+
+			let URLQuery = document.location.search;
+			let query = [];
+			let objectPram = [];
+
+			if (1 < URLQuery.length) {
+
+				//オブジェクトの数を割り出す。ひとつのオブジェクトにつき３つのパラメータを持っている
+				let NumOfobject = Math.ceil((URLQuery.length - 1) / 3);
+
+				for (let i = 0; i < NumOfobject; i++) {
+					query[i] = document.location.search.substr(3 * i + 1, 3);
+					objectPram[i] = [];
+					objectPram[i].type = query[i].substr(0, 1);
+					objectPram[i].x = query[i].substr(1, 1);
+					objectPram[i].y = query[i].substr(2, 1);
+
+				}
+
+				//URLパラメータの二文字目から取得(一文字目は区切り？記号だから)
+
+				return objectPram;
+
+			}
+
+			return null;
+
+		}
+
+		//return null;
+	</script>
+
+</head>
+
+<body>
+	<div>パラメータ</div>
+	<div id="param"></div>
+
+</body></html>
