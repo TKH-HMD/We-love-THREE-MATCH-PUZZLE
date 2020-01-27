@@ -1,10 +1,10 @@
 class Game {
-	constructor() {
+	constructor(gyou, retsu) {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
 		this.masuWidth = 60;
-		this.gyou = 6;
-		this.retsu = 7;
+		this.gyou = gyou;
+		this.retsu = retsu;
 		this.width = this.masuWidth * this.gyou * 2;
 		this.height = this.masuWidth * this.retsu * 2;
 		canvas.width = this.width;
@@ -12,6 +12,7 @@ class Game {
 		this.flame = 0;
 		this.masuNoKazu = this.gyou * this.retsu;
 		this.cells = [];
+		this.objects = [];
 		//canvas要素の座標を取得
 		this.clientRect = document.getElementById('canvas').getBoundingClientRect();
 
@@ -19,6 +20,7 @@ class Game {
 
 	//背景の描画
 	paintBG() {
+
 		//灰色で背景塗りつぶし
 		this.context.fillStyle = "#aaa";
 		//ステージ全体を描画
@@ -65,12 +67,20 @@ class Game {
 
 	generateObjects() {
 
-		let objects = GetQueryString();
-		for (let i = 0; i < objects.length; i++) {
-			objects[i].type
+		let objs = GetQueryString();
+		if (objs === null) return;
+		for (let i = 0; i < objs.length; i++) {
+			if (objs[i].type < 30) {
+				this.objects[i] = new Cell(objs[i].x * this.masuWidth, objs[i].y * this.masuWidth, objs[i].type);
+			} else {
+				let cellNo = objs[i].y * game.retsu + objs[i].x;
+				game.cells[cellNo].x = objs[i].x * game.masuWidth;
+				game.cells[cellNo].y = objs[i].y * game.masuWidth;
+				game.cells[cellNo].type = objs[i].type;
+			}
 		}
 
-	}
+	} //generateObjects()
 
 	//フィールド内に非表示のセルが存在する場合、待機セルの一番上に移動させ
 	//フィールド最上段が空いている場合は待機セル最下段のものを表示させ、落下判定に引っかかるようにする
@@ -168,6 +178,19 @@ class Game {
 							text = "●";
 							break;
 
+						case 31:
+							this.context.fillStyle = "black";
+							text = "&#x1f423;";
+							break;
+
+						case 32:
+							this.context.fillStyle = "black";
+							text = "&#x1f388;";
+							break;
+
+						default:
+							break;
+
 
 					} //switch
 
@@ -221,6 +244,34 @@ class Game {
 
 
 	} //paintCells()
+
+	paintUnderlayer() {
+
+		for (let i = 0; i < game.objects.length; i++) {
+			if (game.objects[i].type === 22) {
+				let x = this.objects[i].x;
+				let y = this.objects[i].y;
+				this.context.fillStyle = "rgba(" + [255, 255, 255, 0.4] + ")";
+				this.context.fillRect(x, y, this.masuWidth, this.masuWidth);
+			}
+		}
+
+	} //paintUnderlayer()
+	paintUpperlayer() {
+
+		for (let i = 0; i < game.objects.length; i++) {
+			let x = this.objects[i].x;
+			let y = this.objects[i].y;
+			switch (game.objects[i].type) {
+				case 20:
+					this.context.fillStyle = "black";
+				case 21:
+					this.context.fillStyle = "#C47222";
+			}
+			this.context.fillRect(x, y, this.masuWidth, this.masuWidth);
+		}
+
+	} //paintUpperlayer()
 
 	//moveWay = true =>ドラッグ時、ドラッグ方向のセル番号を返す
 	//moveWay = "" =>指定セル番号の上下左右のセル番号を連想配列にいれて返す。
@@ -333,6 +384,19 @@ class Input {
 
 		//もしマウスダウン時のカーソル座標がセルの領域内で、なおかつ落下中でなく、画面に表示されていればドラッグフラグを立てる
 
+		for (let i = 0; i < game.objects.length; i++) {
+
+			if (x > game.objects[i].x &&
+				x < game.objects[i].x + game.masuWidth &&
+				y > game.objects[i].y &&
+				y < game.objects[i].y + game.masuWidth
+			) {
+				if (game.objects[i] === 20 || game.objects[i] === 21) {
+					return;
+				}
+			}
+		}
+
 		for (let i = 0; i < game.cells.length; i++) {
 			if (x > game.cells[i].x &&
 				x < game.cells[i].x + game.masuWidth &&
@@ -415,8 +479,12 @@ class Input {
 							game.cells[i].moveWay = "up";
 						}
 					}
-					//ドラッグしたセルの、ドラッグした方向隣のセルのmoveFを立てる
-					game.ditectNeighbor(i);
+					//ドラッグしたセルの、ドラッグした方向隣のセルのmoveFを立てる。同じ座標に特定のオブジェクトがあれば取り消す
+					let changeCellNo = game.ditectNeighbor(i);
+					for (let j = 1; j < game.objects.length; j++) {
+						if (game.objects[j].x === game.cells[changeCellNo].x && game.objects[j].y === game.cells[changeCellNo].y) this.mouseUpFunc;
+
+					}
 
 				} //if!moveWay
 				else {
@@ -759,11 +827,24 @@ class Check {
 					}
 					break
 			}
-			//隣のセルが存在し、表示中でなおかつ落下中ではない場合のみ判定
+
+			let Fobject = false;
+
+			for (let j = 1; j < game.objects.length; j++) {
+				if (arrayWay != undefined &&
+					game.objects[j].x === game.cells[arrayWay].x && game.objects[j].y === game.cells[arrayWay].y) this.mouseUpFunc;
+				Fobject = true;
+			}
+
+			//隣のセルが存在し、表示中でなおかつ落下中ではない場合・判定先がオブジェクトではない場合のみ判定
 			if (arrayWay != undefined &&
 				game.cells[arrayWay].visibleF === true &&
 				game.cells[arrayWay].y >= 0 &&
-				game.cells[arrayWay].dropF === false) {
+				game.cells[arrayWay].dropF === false &&
+				Fobject === false &&
+				game.cells[arrayWay].type < 10
+			) {
+
 				//左隣とタイプが同じとき
 				if (game.cells[cellNo].type === game.cells[arrayWay].type) {
 
@@ -837,6 +918,7 @@ class Check {
 		let dragging;
 		let changing;
 		let go = false;
+		let Fobject = false;
 
 		//他のセルがドラッグ中であれば変数に入れる
 		for (let i = 0; i < game.cells.length; i++) {
@@ -849,16 +931,26 @@ class Check {
 		}
 
 		for (let i = 0; i < game.cells.length; i++) {
-
 			go = false;
+			Fobject = false;
 
-			//もし自身と下のセルがドラッグ中でないなら
+			//一つ下のセルに当たり判定のあるオブジェクトがないかチェック
+
+			for (let j = 1; j < game.objects.length; j++) {
+				if (game.objects[j].x === game.cells[i].x && game.objects[j].y - game.masuWidth === game.cells[i].y) {
+
+					if (game.objects[j].type >= 22) Fobject = true;
+				}
+			}
+
+			//もし自身と下のセルがドラッグ中でなく、一つ下にオブジェクトがなければいなら
 			if (dragging === undefined || changing === undefined) {
 				go = true;
 			} else if (i !== dragging &&
 				i !== changing &&
 				game.cells[i].x !== game.cells[dragging].previousX &&
-				game.cells[i].x !== game.cells[changing].previousX
+				game.cells[i].x !== game.cells[changing].previousX &&
+				Fobject === false
 			) {
 				go = true;
 			}
@@ -880,7 +972,8 @@ class Check {
 						game.cells[i].dropF = true;
 					}
 					//一つ下のセルが落下中でなければ止まる
-					if ( /*game.cells[array.down].visibleF === true && */ game.cells[array.down].dropF === false) {
+					if ( /*game.cells[array.down].visibleF === true && */ game.cells[array.down].dropF === false |
+						Fobject === true) {
 						game.cells[i].dropF = false;
 					}
 				}
@@ -946,7 +1039,16 @@ let game = new Game;
 let input = new Input;
 let check = new Check;
 
+//URLから行列数のみ取得
+(function () {
+	let gyouretsu = GetQueryString("gyouretsu")
+	if (gyouretsu != null) {
+		game = new Game(gyouretsu[0].gyou, gyouretsu[0].retsu);
+	}
+}());
+
 game.generateCells();
+game.generateObjects();
 
 function bombsExplosion(cellNo) {
 
@@ -1001,28 +1103,70 @@ function bombsExplosion(cellNo) {
 
 }
 
-function GetQueryString() {
 
+//渡した引数で行列数のみ取得するかオブジェクトのみ取得するか分岐するようにする
+function GetQueryString(F) {
+
+	let flag = F || null
 	let URLQuery = document.location.search;
-	let query = [];
-	let objectPram = [];
+	let queryBlock = [];
+	let query = "";
+	let objectParam = [];
+	let mojisu;
 
 	if (1 < URLQuery.length) {
 
-		//オブジェクトの数を割り出す。ひとつのオブジェクトにつき３つのパラメータを持っている
-		let NumOfobject = Math.ceil((URLQuery.length - 1) / 3);
+		URLQuery = URLQuery.substr(1);
 
-		//URLパラメータの二文字目から取得(一文字目は区切り記号の？だから)
-		for (let i = 0; i < NumOfobject; i++) {
-			query[i] = document.location.search.substr(3 * i + 1, 3);
-			objectPram[i] = [];
-			objectPram[i].type = query[i].substr(0, 1);
-			objectPram[i].x = query[i].substr(1, 1);
-			objectPram[i].y = query[i].substr(2, 1);
+		//パラメータが12桁よりも大きければ、12桁ごとに分割して１０進数の整数に戻し、文字列にした後合体させる。
+
+		if (URLQuery.length > 12) {
+			let block = []
+			let bunkatsuSu = Math.ceil(URLQuery.length / 12);
+			for (let i = 0; i < bunkatsuSu; i++) {
+				block[i] = URLQuery.substr(i * 12, 12)
+				block[i] = parseInt(block[i], 16);
+				block[i] = block[i].toString(10);
+				if (i != bunkatsuSu - 1) {
+					block[i] = ("000" + block[i]).slice(-15);
+				} else {
+					let ketasu = parseInt(block[0].substr(0, 3));
+					let hasuKeta = ketasu % 15;
+					block[i] = ("000" + block[i]).slice(-(hasuKeta));
+				}
+				query += block[i]
+			}
+		} else {
+			query = URLQuery.substr(mojisu + 2)
+		}
+
+
+		//引数が"gyouretsu"なら、行・列数のみ計算して返す
+		if (flag === "gyouretsu") {
+			let retsuToGyouParam = query.substr(3, 4);
+			objectParam[0] = [];
+			objectParam[0].gyou = parseInt(retsuToGyouParam.substr(0, 2));
+			objectParam[0].retsu = parseInt(retsuToGyouParam.substr(2, 2));
+
+			return objectParam;
 
 		}
 
-		return objectPram;
+
+
+		//オブジェクトの数を割り出す。ひとつのオブジェクトにつき2桁のパラメータを３つ持っている。
+		let NumOfobject = Math.ceil((query.length - 7) / 6);
+
+		//パラメータを６文字ごとに切り出し、さらに2文字ずつ分割して整数化し、オブジェクトのパラメーターとして配列に入れていく。
+		for (let i = 0; i < NumOfobject; i++) {
+			queryBlock[i] = query.substr(6 * i + 7, 6);
+			objectParam[i] = [];
+			objectParam[i].type = parseInt(queryBlock[i].substr(0, 2));
+			objectParam[i].x = parseInt(queryBlock[i].substr(2, 2));
+			objectParam[i].y = parseInt(queryBlock[i].substr(4, 2));
+		}
+
+		return objectParam;
 
 	}
 
@@ -1035,7 +1179,9 @@ function main() {
 	check.checker();
 	check.dropCheck();
 	check.cellKaburiDetect();
+	game.paintUnderlayer();
 	game.paintCells();
+	game.paintUpperlayer();
 	game.cellsReplace();
 	requestAnimationFrame(main);
 }
