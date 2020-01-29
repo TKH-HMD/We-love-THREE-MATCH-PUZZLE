@@ -1,4 +1,14 @@
 class Game {
+	/*type
+	0:red 1:blue 2:green 3:yellow 4:skyblue
+	//10~//
+	11:タテ一列　12:ヨコ一列　13爆弾
+	//20~//
+	20:かべ　21:木箱　22草
+	//30~//
+	31:ひよこ　32くり
+	*/
+
 	constructor(gyou, retsu) {
 		this.canvas = document.getElementById('canvas');
 		this.context = canvas.getContext('2d');
@@ -72,6 +82,8 @@ class Game {
 		for (let i = 0; i < objs.length; i++) {
 			if (objs[i].type < 30) {
 				this.objects[i] = new Cell(objs[i].x * this.masuWidth, objs[i].y * this.masuWidth, objs[i].type);
+				this.objects[i].visibleF = true;
+
 			} else {
 				let cellNo = objs[i].y * game.retsu + objs[i].x;
 				game.cells[cellNo].x = objs[i].x * game.masuWidth;
@@ -179,13 +191,13 @@ class Game {
 							break;
 
 						case 31:
-							this.context.fillStyle = "black";
-							text = "&#x1f423;";
+							this.context.fillStyle = "white";
+							text = "●";
 							break;
 
 						case 32:
-							this.context.fillStyle = "black";
-							text = "&#x1f388;";
+							this.context.fillStyle = "#C47222";
+							text = "Ж";
 							break;
 
 						default:
@@ -233,9 +245,9 @@ class Game {
 
 			this.context.fillText("Drag:" + this.cells[i].dragF, this.cells[i].x + yokehaba, this.cells[i].y + 40 + this.height / 2);
 
-			this.context.fillText("C:" + this.cells[i].changeF, this.cells[i].x + yokehaba, this.cells[i].y + 50 + this.height / 2);
+			this.context.fillText("RID:" + this.cells[i].disappearGroupRId, this.cells[i].x + yokehaba, this.cells[i].y + 50 + this.height / 2);
 
-			this.context.fillText("V:" + this.cells[i].visibleF, this.cells[i].x + yokehaba, this.cells[i].y + 60 + this.height / 2);
+			this.context.fillText("CID:" + this.cells[i].disappearGroupCId, this.cells[i].x + yokehaba, this.cells[i].y + 60 + this.height / 2);
 
 
 			/////////////////////////////
@@ -248,10 +260,10 @@ class Game {
 	paintUnderlayer() {
 
 		for (let i = 0; i < game.objects.length; i++) {
-			if (game.objects[i].type === 22) {
+			if (game.objects[i].type === 22 && game.objects[i].visibleF === true) {
 				let x = this.objects[i].x;
 				let y = this.objects[i].y;
-				this.context.fillStyle = "rgba(" + [255, 255, 255, 0.4] + ")";
+				this.context.fillStyle = "rgba(" + [255, 255, 255, 0.7] + ")";
 				this.context.fillRect(x, y, this.masuWidth, this.masuWidth);
 			}
 		}
@@ -262,13 +274,21 @@ class Game {
 		for (let i = 0; i < game.objects.length; i++) {
 			let x = this.objects[i].x;
 			let y = this.objects[i].y;
-			switch (game.objects[i].type) {
-				case 20:
-					this.context.fillStyle = "black";
-				case 21:
-					this.context.fillStyle = "#C47222";
+			if (game.objects[i].visibleF) {
+				switch (game.objects[i].type) {
+					case 20:
+						this.context.fillStyle = "black";
+						this.context.fillRect(x, y, this.masuWidth, this.masuWidth);
+						break;
+					case 21:
+						this.context.fillStyle = "#C47222";
+						this.context.fillRect(x, y, this.masuWidth, this.masuWidth);
+						break;
+					default:
+						break;
+				}
+
 			}
-			this.context.fillRect(x, y, this.masuWidth, this.masuWidth);
 		}
 
 	} //paintUpperlayer()
@@ -357,7 +377,7 @@ class Cell {
 		this.move = game.masuWidth;
 		this.moveWay = "";
 		this.changeF = false;
-		this.moveSpeed = 3;
+		this.moveSpeed = 1;
 		this.type = type;
 		//-1はグループ未判定、-2は消滅グループ外、消えるグループができたら1から順に割り当てていく
 		this.disappearGroupRId = -1;
@@ -389,9 +409,10 @@ class Input {
 			if (x > game.objects[i].x &&
 				x < game.objects[i].x + game.masuWidth &&
 				y > game.objects[i].y &&
-				y < game.objects[i].y + game.masuWidth
+				y < game.objects[i].y + game.masuWidth &&
+				game.objects[i].visibleF === true
 			) {
-				if (game.objects[i] === 20 || game.objects[i] === 21) {
+				if (game.objects[i].type === 20 || game.objects[i].type === 21) {
 					return;
 				}
 			}
@@ -481,10 +502,15 @@ class Input {
 					}
 					//ドラッグしたセルの、ドラッグした方向隣のセルのmoveFを立てる。同じ座標に特定のオブジェクトがあれば取り消す
 					let changeCellNo = game.ditectNeighbor(i);
-					for (let j = 1; j < game.objects.length; j++) {
-						if (game.objects[j].x === game.cells[changeCellNo].x && game.objects[j].y === game.cells[changeCellNo].y) this.mouseUpFunc;
-
+					for (let j = 0; j < game.objects.length; j++) {
+						if (game.objects[j].type === 20 || game.objects[j].type === 21) {
+							if (game.objects[j].x === game.cells[changeCellNo].x && game.objects[j].y === game.cells[changeCellNo].y) {
+								input.mouseUpFunc();
+								return;
+							}
+						}
 					}
+
 
 				} //if!moveWay
 				else {
@@ -715,6 +741,13 @@ class Check {
 			let count = 0;
 
 			for (let j = 0; j < game.cells.length; j++) {
+				//ひよこが一番下についたら消す
+				if (game.cells[j].type === 31 &&
+					game.cells[j].y > game.masuWidth * game.gyou
+				) {
+					game.cells[j].visibleF = false;
+				}
+				//IDの数を数える
 				if (game.cells[j].disappearGroupCId === i) {
 					count++
 				}
@@ -772,6 +805,53 @@ class Check {
 			} //if count>=3
 		} //for i
 
+		//オブジェクトの消えるかチェック
+
+		for (let i = 0; i < game.objects.length; i++) {
+			if (game.objects[i].type === 22 || game.objects[i].type === 21) {
+				if (game.objects[i].visibleF) {
+
+					for (let j = 0; j < game.cells.length; j++) {
+						//上下のどちらかのセルが消えたらオブジェクトも消える
+						if (game.cells[j].visibleF === false &&
+							game.cells[j].y >= 0
+						) {
+
+							if (game.cells[j].x === game.objects[i].x) {
+								if (game.cells[j].y + game.masuWidth === game.objects[i].y ||
+									game.cells[j].y - game.masuWidth === game.objects[i].y ||
+									game.cells[j].y === game.objects[i].y) {
+									game.objects[i].visibleF = false;
+								}
+
+							} else if (game.cells[j].y === game.objects[i].y) {
+								if (game.cells[j].x + game.masuWidth === game.objects[i].x ||
+									game.cells[j].x - game.masuWidth === game.objects[i].x) {
+
+									game.objects[i].visibleF = false;
+
+								}
+							} //else if
+						}
+						//くりが消えるかチェック
+
+						if (game.cells[j].type === 32) {
+							let array = game.ditectNeighbor(j);
+							if (array["up"] !== undefined &&
+								game.cells[array.up].visibleF === false) game.cells[j].visibleF === false;
+							if (array["right"] !== undefined && game.cells[array.right].visibleF === false) game.cells[j].visibleF === false;
+							if (array["down"] !== undefined && game.cells[array.down].visibleF === false) game.cells[j].visibleF === false;
+							if (array["left"] !== undefined && game.cells[array.left].visibleF === false) game.cells[j].visibleF === false;
+
+						}
+					}
+				}
+
+
+			}
+		} //for i
+
+
 		return num;
 
 	} //checker()
@@ -828,15 +908,34 @@ class Check {
 					break
 			}
 
+			//調べる先のセルの上に・または自身の上にオブジェクトが存在する・あるいは自身がオブジェクトか判定
 			let Fobject = false;
 
-			for (let j = 1; j < game.objects.length; j++) {
-				if (arrayWay != undefined &&
-					game.objects[j].x === game.cells[arrayWay].x && game.objects[j].y === game.cells[arrayWay].y) this.mouseUpFunc;
+			if (game.cells[cellNo].type > 30) {
+				this.mouseUpFunc;
 				Fobject = true;
 			}
 
-			//隣のセルが存在し、表示中でなおかつ落下中ではない場合・判定先がオブジェクトではない場合のみ判定
+			for (let j = 0; j < game.objects.length; j++) {
+				if (game.objects[j].visibleF === true &&
+					game.objects[j].type !== 22
+				) {
+					if (arrayWay != undefined &&
+						game.objects[j].x === game.cells[arrayWay].x && game.objects[j].y === game.cells[arrayWay].y
+
+					) {
+						this.mouseUpFunc;
+						Fobject = true;
+					} else if (
+						game.objects[j].x === game.cells[cellNo].x && game.objects[j].y === game.cells[cellNo].y
+					) {
+						this.mouseUpFunc;
+						Fobject = true;
+					}
+				}
+			}
+
+			//隣のセルが存在し、表示中でなおかつ落下中ではない場合・判定先・または自身がオブジェクトではない場合のみ判定
 			if (arrayWay != undefined &&
 				game.cells[arrayWay].visibleF === true &&
 				game.cells[arrayWay].y >= 0 &&
@@ -919,6 +1018,7 @@ class Check {
 		let changing;
 		let go = false;
 		let Fobject = false;
+		let staticF = true;
 
 		//他のセルがドラッグ中であれば変数に入れる
 		for (let i = 0; i < game.cells.length; i++) {
@@ -936,25 +1036,39 @@ class Check {
 
 			//一つ下のセルに当たり判定のあるオブジェクトがないかチェック
 
-			for (let j = 1; j < game.objects.length; j++) {
-				if (game.objects[j].x === game.cells[i].x && game.objects[j].y - game.masuWidth === game.cells[i].y) {
+			for (let j = 0; j < game.objects.length; j++) {
+				if (game.objects[j].x === game.cells[i].x && game.objects[j].y - game.masuWidth === game.cells[i].y &&
+					game.objects[j].visibleF === true
+				) {
 
-					if (game.objects[j].type >= 22) Fobject = true;
+					if (game.objects[j].type < 22) {
+						Fobject = true;
+						game.cells[i].dropF = false;
+					}
+				}
+				if (game.objects[j].x === game.cells[i].x && game.objects[j].y === game.cells[i].y &&
+					game.objects[j].visibleF === true) {
+
+					if (game.objects[j].type < 22) {
+						Fobject = true;
+						game.cells[i].dropF = false;
+					}
+				}
+
+			} //fotj
+
+			//もし自身と下のセルがドラッグ中でなく、一つ下にオブジェクトがないなら
+			if (!Fobject) {
+				if (dragging === undefined || changing === undefined) {
+					go = true;
+				} else if (i !== dragging &&
+					i !== changing &&
+					game.cells[i].x !== game.cells[dragging].previousX &&
+					game.cells[i].x !== game.cells[changing].previousX
+				) {
+					go = true;
 				}
 			}
-
-			//もし自身と下のセルがドラッグ中でなく、一つ下にオブジェクトがなければいなら
-			if (dragging === undefined || changing === undefined) {
-				go = true;
-			} else if (i !== dragging &&
-				i !== changing &&
-				game.cells[i].x !== game.cells[dragging].previousX &&
-				game.cells[i].x !== game.cells[changing].previousX &&
-				Fobject === false
-			) {
-				go = true;
-			}
-
 			if (go) {
 				let array = game.ditectNeighbor(i);
 
@@ -962,6 +1076,7 @@ class Check {
 				if (array.down == undefined) {
 					/*if (game.cells[i].y < (game.gyou - 1) * game.masuWidth) {*/
 					game.cells[i].dropF = true;
+
 					//}
 				}
 
@@ -979,14 +1094,15 @@ class Check {
 				}
 
 				if (game.cells[i].dropF === true) {
-
+					staticF = false;
 					game.cells[i].y += game.cells[i].moveSpeed;
 					game.cells[i].previousY = game.cells[i].y;
 
 				}
 
 				//フィールドの一番下についたら止まる
-				if (game.cells[i].y > (game.gyou - 1) * game.masuWidth) {
+				if (game.cells[i].y > (game.gyou - 1) * game.masuWidth &&
+					game.cells[i].type !== 31) {
 					game.cells[i].y = (game.gyou - 1) * game.masuWidth
 					game.cells[i].previousY = (game.gyou - 1) * game.masuWidth
 					game.cells[i].dropF = false;
@@ -996,6 +1112,22 @@ class Check {
 
 			}
 		} //for
+
+		//セルが落ち切って動きが無いとき
+		if (staticF) {
+			for (var i = 0; i < game.cells.length; i++) {
+				for (var j = 0; j < game.cells.length; j++) {
+					//cells[i]の左上に位置しているセルが存在するかチェック
+					if (game.cells[i].x + game.masuWidth !== game.cells[j].x &&
+						game.cells[i].y + game.masuWidth !== game.cells[j].y
+					) {
+						game.cells[i].y += game.masuWidth;
+						game.cells[i].x += game.masuWidth;
+					}
+
+				}
+			}
+		} //if(staticF)
 
 	} //dropCheck()
 
@@ -1056,13 +1188,15 @@ function bombsExplosion(cellNo) {
 	switch (game.cells[cellNo].type) {
 		case 11:
 			for (let j = 0; j < game.cells.length; j++) {
-				if (game.cells[j].x === game.cells[cellNo].x) game.cells[j].visibleF = false;
+				if (game.cells[j].x === game.cells[cellNo].x &&
+					game.cells[j].type !== 31) game.cells[j].visibleF = false;
 			}
 			break;
 
 		case 12:
 			for (let j = 0; j < game.cells.length; j++) {
-				if (game.cells[j].y === game.cells[cellNo].y) game.cells[j].visibleF = false;
+				if (game.cells[j].y === game.cells[cellNo].y &&
+					game.cells[j].type !== 31) game.cells[j].visibleF = false;
 			}
 			break;
 
@@ -1071,8 +1205,8 @@ function bombsExplosion(cellNo) {
 				if (game.cells[j].y >= game.cells[cellNo].y - (game.masuWidth * 2) &&
 					game.cells[j].y <= game.cells[cellNo].y + (game.masuWidth * 2) &&
 					game.cells[j].x >= game.cells[cellNo].x - (game.masuWidth * 2) &&
-					game.cells[j].x <= game.cells[cellNo].x + (game.masuWidth * 2)
-				) {
+					game.cells[j].x <= game.cells[cellNo].x + (game.masuWidth * 2) &&
+					game.cells[j].type !== 31) {
 					game.cells[j].visibleF = false;
 
 					if (game.cells[j].y === game.cells[cellNo].y - (game.masuWidth * 2) && game.cells[j].x === game.cells[cellNo].x - (game.masuWidth * 2)) {
@@ -1137,7 +1271,9 @@ function GetQueryString(F) {
 				query += block[i]
 			}
 		} else {
-			query = URLQuery.substr(mojisu + 2)
+
+			query = parseInt(URLQuery, 16)
+			query = ("0" + String(query));
 		}
 
 

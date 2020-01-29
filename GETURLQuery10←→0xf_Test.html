@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="jp">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+
+<body>
+	<canvas id="canvas"></canvas>
+	<script>
+		var origin = "0404200101" //"0707200101210202220303310404320505"
+
+		function encode(str) {
+
+			var ketasu = (("000" + String(str.length + 3)).slice(-3));
+			var query = ketasu + str;
+
+			let bunkatsuSu = Math.ceil(query.length / 15);
+			let block = []
+			let URLquery = "";
+			for (let i = 0; i < bunkatsuSu; i++) {
+				block[i] = query.substr(15 * i, 15);
+				block[i] = parseInt(block[i]);
+				block[i] = block[i].toString(16)
+				if (i != bunkatsuSu - 1) block[i] = ("000" + block[i]).slice(-12);
+				URLquery += block[i];
+			}
+			return URLquery;
+		}
+
+		//URLquery ="21b73319078912644eef3ca041ecf9"
+		/*
+				const URLquery = encode();
+				const block = []
+				const bunkatsuSu = Math.ceil(URLquery.length / 12);
+				let query = "";
+				for (let i = 0; i < bunkatsuSu; i++) {
+					block[i] = URLquery.substr(i * 12, 12)
+					block[i] = parseInt(block[i], 16);
+					block[i] = block[i].toString(10);
+					if (i != bunkatsuSu - 1) {
+						block[i] = ("000" + block[i]).slice(-15);
+					} else {
+						let ketasu = parseInt(block[0].substr(0, 3));
+						let hasuKeta = ketasu % 15;
+						block[i] = ("000" + block[i]).slice(-(hasuKeta));
+					}
+					query += block[i]
+				}
+				query = query.substr(3);
+				if (origin === query) console.log("デコードできました！")
+				*/
+		//document.write(URLquery);
+
+		function kesu() {
+			document.getElementById("textOutput").textContent = "";
+		}
+
+		function exeEncode() {
+			const str = document.form1.decimalInput.value;
+			let a = encode(str);
+			document.getElementById("textOutput").textContent = a;
+		}
+
+	</script>
+	<form name="form1">
+		<input type="text" name="decimalInput">
+		<input type="button" value="encode" onClick="exeEncode()">
+		<input type="button" value="リセット" onClick="kesu()">
+	</form>
+
+	<p id="textOutput" style="height: 30px"></p>
+
+</body>
+
+</html>
